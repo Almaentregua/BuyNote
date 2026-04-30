@@ -5,10 +5,16 @@ import androidx.lifecycle.viewModelScope
 import com.martinjm.buynote.domain.repository.CategoryRepository
 import com.martinjm.buynote.domain.repository.ProductRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import javax.inject.Inject
 
 data class CatalogUiState(
@@ -29,8 +35,16 @@ class CatalogViewModel @Inject constructor(
     private val categoryRepository: CategoryRepository
 ) : ViewModel() {
 
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
+
+    fun onQueryChange(query: String) = _searchQuery.update { query }
+
     val uiState: StateFlow<CatalogUiState> = combine(
-        productRepository.getAll(),
+        _searchQuery
+            .debounce { query -> if (query.isEmpty()) 0L else 250L }
+            .distinctUntilChanged()
+            .flatMapLatest { query -> productRepository.search(query) },
         categoryRepository.getAll()
     ) { products, categories ->
         val categoryById = categories.associateBy { it.id }
