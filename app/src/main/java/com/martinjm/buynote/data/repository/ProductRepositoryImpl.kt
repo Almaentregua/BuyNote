@@ -34,6 +34,9 @@ class ProductRepositoryImpl @Inject constructor(
 
     override suspend fun delete(product: Product): Int =
         dao.delete(product.toEntity())
+
+    override suspend fun deleteById(id: Long): Int =
+        dao.deleteById(id)
 }
 
 private fun ProductEntity.toDomain() = Product(

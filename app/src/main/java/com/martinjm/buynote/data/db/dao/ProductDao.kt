@@ -35,4 +35,7 @@ interface ProductDao {
 
     @Delete
     suspend fun delete(product: ProductEntity): Int
+
+    @Query("DELETE FROM products WHERE id = :id")
+    suspend fun deleteById(id: Long): Int
 }

@@ -80,6 +80,14 @@ class ProductFormViewModel @Inject constructor(
     fun onNotesChange(value: String) = _uiState.update { it.copy(notes = value) }
     fun onCategorySelected(categoryId: Long?) = _uiState.update { it.copy(selectedCategoryId = categoryId) }
 
+    fun delete() {
+        check(isEditing)
+        viewModelScope.launch {
+            productRepository.deleteById(productId)
+            _navigateBack.emit(Unit)
+        }
+    }
+
     fun save() {
         val state = _uiState.value
         if (state.name.isBlank()) {
