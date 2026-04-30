@@ -1,24 +1,49 @@
 package com.martinjm.buynote.ui.screens.catalog
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.outlined.Inventory2
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
+import com.martinjm.buynote.ui.navigation.Routes
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CatalogScreen(navController: NavHostController) {
+fun CatalogScreen(
+    navController: NavHostController,
+    viewModel: CatalogViewModel = hiltViewModel()
+) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -29,15 +54,92 @@ fun CatalogScreen(navController: NavHostController) {
                     }
                 }
             )
+        },
+        floatingActionButton = {
+            ExtendedFloatingActionButton(
+                onClick = { navController.navigate(Routes.productForm()) },
+                icon = { Icon(Icons.Default.Add, contentDescription = null) },
+                text = { Text("Agregar producto") }
+            )
         }
     ) { padding ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding),
-            contentAlignment = Alignment.Center
+                .padding(padding)
         ) {
-            Text("Pantalla en construcción")
+            when {
+                uiState.isLoading -> {
+                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                }
+                uiState.products.isEmpty() -> {
+                    EmptyCatalog(modifier = Modifier.align(Alignment.Center))
+                }
+                else -> {
+                    ProductList(products = uiState.products)
+                }
+            }
         }
     }
+}
+
+@Composable
+private fun EmptyCatalog(modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier.padding(32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Icon(
+            imageVector = Icons.Outlined.Inventory2,
+            contentDescription = null,
+            modifier = Modifier.size(64.dp),
+            tint = MaterialTheme.colorScheme.outline
+        )
+        Text(
+            text = "Tu catálogo está vacío",
+            style = MaterialTheme.typography.titleMedium
+        )
+        Text(
+            text = "Tocá \"+\" para agregar tu primer producto",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center
+        )
+    }
+}
+
+@Composable
+private fun ProductList(products: List<ProductUiModel>) {
+    LazyColumn(contentPadding = PaddingValues(vertical = 8.dp)) {
+        items(products, key = { it.id }) { product ->
+            ProductItem(product = product)
+            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+        }
+    }
+}
+
+@Composable
+private fun ProductItem(product: ProductUiModel) {
+    ListItem(
+        headlineContent = { Text(product.name) },
+        supportingContent = product.brand?.let { brand ->
+            { Text(brand) }
+        },
+        trailingContent = product.categoryName?.let { category ->
+            {
+                Surface(
+                    shape = MaterialTheme.shapes.small,
+                    color = MaterialTheme.colorScheme.secondaryContainer
+                ) {
+                    Text(
+                        text = category,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                }
+            }
+        }
+    )
 }
