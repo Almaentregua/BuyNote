@@ -1,5 +1,6 @@
 package com.martinjm.buynote.ui.screens.catalog
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -76,7 +77,10 @@ fun CatalogScreen(
                     EmptyCatalog(modifier = Modifier.align(Alignment.Center))
                 }
                 else -> {
-                    ProductList(products = uiState.products)
+                    ProductList(
+                        products = uiState.products,
+                        onProductClick = { id -> navController.navigate(Routes.productForm(id)) }
+                    )
                 }
             }
         }
@@ -110,18 +114,19 @@ private fun EmptyCatalog(modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun ProductList(products: List<ProductUiModel>) {
+private fun ProductList(products: List<ProductUiModel>, onProductClick: (Long) -> Unit) {
     LazyColumn(contentPadding = PaddingValues(vertical = 8.dp)) {
         items(products, key = { it.id }) { product ->
-            ProductItem(product = product)
+            ProductItem(product = product, onClick = { onProductClick(product.id) })
             HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
         }
     }
 }
 
 @Composable
-private fun ProductItem(product: ProductUiModel) {
+private fun ProductItem(product: ProductUiModel, onClick: () -> Unit) {
     ListItem(
+        modifier = Modifier.clickable(onClick = onClick),
         headlineContent = { Text(product.name) },
         supportingContent = product.brand?.let { brand ->
             { Text(brand) }
