@@ -38,8 +38,13 @@ data class ShoppingListItemUiModel(
     val id: Long,
     val displayName: String,
     val quantityDisplay: String,
-    val isChecked: Boolean
-)
+    val isChecked: Boolean,
+    val quantity: Double,
+    val unit: QuantityUnit,
+    val customName: String?
+) {
+    val isAdHoc: Boolean get() = customName != null
+}
 
 @OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
 @HiltViewModel
@@ -65,7 +70,10 @@ class ListDetailViewModel @Inject constructor(
                     displayName = item.productId?.let { productById[it]?.name }
                         ?: item.customName ?: "",
                     quantityDisplay = formatQuantity(item.quantity, item.unit),
-                    isChecked = item.isChecked
+                    isChecked = item.isChecked,
+                    quantity = item.quantity,
+                    unit = item.unit,
+                    customName = item.customName
                 )
             },
             totalItems = items.size,
@@ -120,6 +128,17 @@ class ListDetailViewModel @Inject constructor(
                     unit = unit
                 )
             )
+        }
+    }
+
+    fun updateItem(id: Long, customName: String?, quantity: Double, unit: QuantityUnit) {
+        viewModelScope.launch {
+            val item = repository.getItemById(id) ?: return@launch
+            repository.updateItem(item.copy(
+                customName = customName?.trim(),
+                quantity = quantity,
+                unit = unit
+            ))
         }
     }
 }

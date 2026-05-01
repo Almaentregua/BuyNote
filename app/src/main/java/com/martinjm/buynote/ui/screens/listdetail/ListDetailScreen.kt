@@ -78,6 +78,7 @@ fun ListDetailScreen(
     var showCatalogPicker by remember { mutableStateOf(false) }
     var showAdHocSheet by remember { mutableStateOf(false) }
     var pendingProduct by remember { mutableStateOf<Product?>(null) }
+    var editingItem by remember { mutableStateOf<ShoppingListItemUiModel?>(null) }
 
     val addSheetState = rememberModalBottomSheetState()
     val pickerSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -130,6 +131,7 @@ fun ListDetailScreen(
                 )
                 else -> ItemsList(
                     items = uiState.items,
+                    onItemClick = { editingItem = it },
                     modifier = Modifier.fillMaxSize()
                 )
             }
@@ -225,11 +227,29 @@ fun ListDetailScreen(
             onDismiss = { pendingProduct = null }
         )
     }
+
+    // --- Bottom sheet: editar item ---
+    editingItem?.let { item ->
+        ModalBottomSheet(
+            onDismissRequest = { editingItem = null },
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        ) {
+            EditItemContent(
+                item = item,
+                onConfirm = { customName, quantity, unit ->
+                    viewModel.updateItem(item.id, customName, quantity, unit)
+                    editingItem = null
+                },
+                onDismiss = { editingItem = null }
+            )
+        }
+    }
 }
 
 @Composable
 private fun ItemsList(
     items: List<ShoppingListItemUiModel>,
+    onItemClick: (ShoppingListItemUiModel) -> Unit,
     modifier: Modifier = Modifier
 ) {
     LazyColumn(
@@ -245,7 +265,8 @@ private fun ItemsList(
                         checked = item.isChecked,
                         onCheckedChange = { /* 3.1 */ }
                     )
-                }
+                },
+                modifier = Modifier.clickable { onItemClick(item) }
             )
             HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
         }
@@ -496,6 +517,103 @@ private fun AdHocFormContent(
                 TextButton(onClick = onDismiss) { Text("Cancelar") }
                 TextButton(
                     onClick = { onConfirm(name, quantity!!, selectedUnit, saveToCatalog) },
+                    enabled = isValid
+                ) { Text("Guardar") }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun EditItemContent(
+    item: ShoppingListItemUiModel,
+    onConfirm: (customName: String?, quantity: Double, unit: QuantityUnit) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var name by remember { mutableStateOf(item.customName ?: "") }
+    var quantityText by remember { mutableStateOf(
+        if (item.quantity % 1.0 == 0.0) item.quantity.toInt().toString() else item.quantity.toString()
+    ) }
+    var selectedUnit by remember { mutableStateOf(item.unit) }
+    var unitExpanded by remember { mutableStateOf(false) }
+
+    val quantity = quantityText.toDoubleOrNull()
+    val isValid = quantity != null && quantity > 0 && (!item.isAdHoc || name.isNotBlank())
+
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = "Editar item",
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+        )
+        HorizontalDivider()
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            if (item.isAdHoc) {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Nombre") },
+                    singleLine = true,
+                    isError = name.isBlank(),
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedTextField(
+                    value = quantityText,
+                    onValueChange = { quantityText = it },
+                    label = { Text("Cantidad") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    isError = quantity == null || quantity <= 0,
+                    modifier = Modifier.weight(1f)
+                )
+                ExposedDropdownMenuBox(
+                    expanded = unitExpanded,
+                    onExpandedChange = { unitExpanded = it },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    OutlinedTextField(
+                        value = selectedUnit.displayLabel(),
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Unidad") },
+                        trailingIcon = {
+                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = unitExpanded)
+                        },
+                        modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
+                    )
+                    ExposedDropdownMenu(
+                        expanded = unitExpanded,
+                        onDismissRequest = { unitExpanded = false }
+                    ) {
+                        QuantityUnit.entries.forEach { unit ->
+                            DropdownMenuItem(
+                                text = { Text(unit.displayLabel()) },
+                                onClick = { selectedUnit = unit; unitExpanded = false }
+                            )
+                        }
+                    }
+                }
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End
+            ) {
+                TextButton(onClick = onDismiss) { Text("Cancelar") }
+                TextButton(
+                    onClick = {
+                        onConfirm(if (item.isAdHoc) name else null, quantity!!, selectedUnit)
+                    },
                     enabled = isValid
                 ) { Text("Guardar") }
             }
