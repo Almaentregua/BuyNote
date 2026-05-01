@@ -2,12 +2,18 @@ package com.martinjm.buynote.ui.screens.lists
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.martinjm.buynote.domain.model.ListStatus
+import com.martinjm.buynote.domain.model.ShoppingList
 import com.martinjm.buynote.domain.repository.ShoppingListRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -53,6 +59,22 @@ class ActiveListsViewModel @Inject constructor(
         started = SharingStarted.WhileSubscribed(5_000),
         initialValue = ActiveListsUiState()
     )
+
+    private val _navigateToDetail = MutableSharedFlow<Long>()
+    val navigateToDetail: SharedFlow<Long> = _navigateToDetail.asSharedFlow()
+
+    fun createList(name: String) {
+        viewModelScope.launch {
+            val id = repository.insert(
+                ShoppingList(
+                    name = name.trim(),
+                    status = ListStatus.ACTIVE,
+                    createdAt = System.currentTimeMillis()
+                )
+            )
+            _navigateToDetail.emit(id)
+        }
+    }
 
     private fun formatDate(epochMillis: Long): String {
         val sdf = SimpleDateFormat("d 'de' MMM", Locale.forLanguageTag("es"))
