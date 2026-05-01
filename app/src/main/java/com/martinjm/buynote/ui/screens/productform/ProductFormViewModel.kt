@@ -40,6 +40,7 @@ class ProductFormViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val productId: Long = savedStateHandle["productId"] ?: -1L
+    private val initialName: String? = savedStateHandle["name"]
     val isEditing: Boolean = productId != -1L
 
     private val _uiState = MutableStateFlow(ProductFormUiState())
@@ -69,6 +70,8 @@ class ProductFormViewModel @Inject constructor(
                         )
                     }
                 }
+            } else if (initialName != null) {
+                _uiState.update { it.copy(name = initialName) }
             }
             _uiState.update { it.copy(isLoading = false) }
         }

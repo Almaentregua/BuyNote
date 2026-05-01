@@ -1,5 +1,6 @@
 package com.martinjm.buynote.ui.navigation
 
+import android.net.Uri
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -18,14 +19,17 @@ object Routes {
     const val LISTS = "lists"
     const val LIST_DETAIL = "list_detail/{listId}"
     const val CATALOG = "catalog"
-    const val PRODUCT_FORM = "product_form?productId={productId}"
+    const val PRODUCT_FORM = "product_form?productId={productId}&name={name}"
     const val CATEGORIES = "categories"
     const val HISTORY = "history"
     const val SCANNER = "scanner?listId={listId}"
 
     fun listDetail(listId: Long) = "list_detail/$listId"
-    fun productForm(productId: Long? = null) =
-        if (productId != null) "product_form?productId=$productId" else "product_form"
+    fun productForm(productId: Long? = null, name: String? = null): String {
+        val params = mutableListOf("productId=${productId ?: -1L}")
+        if (name != null) params.add("name=${Uri.encode(name)}")
+        return "product_form?${params.joinToString("&")}"
+    }
     fun scanner(listId: Long) = "scanner?listId=$listId"
 }
 
@@ -46,10 +50,17 @@ fun AppNavigation(navController: NavHostController) {
         }
         composable(
             route = Routes.PRODUCT_FORM,
-            arguments = listOf(navArgument("productId") {
-                type = NavType.LongType
-                defaultValue = -1L
-            })
+            arguments = listOf(
+                navArgument("productId") {
+                    type = NavType.LongType
+                    defaultValue = -1L
+                },
+                navArgument("name") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                }
+            )
         ) {
             ProductFormScreen(navController = navController)
         }

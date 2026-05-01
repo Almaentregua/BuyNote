@@ -109,6 +109,19 @@ class ListDetailViewModel @Inject constructor(
             )
         }
     }
+
+    fun addAdHocItem(name: String, quantity: Double, unit: QuantityUnit) {
+        viewModelScope.launch {
+            repository.insertItem(
+                ShoppingListItem(
+                    listId = listId,
+                    customName = name.trim(),
+                    quantity = quantity,
+                    unit = unit
+                )
+            )
+        }
+    }
 }
 
 fun QuantityUnit.displayLabel() = when (this) {
