@@ -42,6 +42,11 @@ class ShoppingListRepositoryImpl @Inject constructor(
     override fun getItemsByListId(listId: Long): Flow<List<ShoppingListItem>> =
         itemDao.getByListId(listId).map { it.map { e -> e.toDomain() } }
 
+    override fun getItemCountsPerList(): Flow<Map<Long, Pair<Int, Int>>> =
+        itemDao.getCountsPerList().map { list ->
+            list.associate { it.listId to (it.total to it.checked) }
+        }
+
     override suspend fun getItemById(id: Long): ShoppingListItem? =
         itemDao.getById(id)?.toDomain()
 

@@ -9,6 +9,8 @@ import androidx.room.Update
 import com.martinjm.buynote.data.db.entity.ShoppingListItemEntity
 import kotlinx.coroutines.flow.Flow
 
+data class ListItemCounts(val listId: Long, val total: Int, val checked: Int)
+
 @Dao
 interface ShoppingListItemDao {
     @Query("SELECT * FROM shopping_list_items WHERE listId = :listId ORDER BY id ASC")
@@ -28,4 +30,7 @@ interface ShoppingListItemDao {
 
     @Query("DELETE FROM shopping_list_items WHERE id = :id")
     suspend fun deleteById(id: Long): Int
+
+    @Query("SELECT listId, COUNT(*) as total, SUM(isChecked) as checked FROM shopping_list_items GROUP BY listId")
+    fun getCountsPerList(): Flow<List<ListItemCounts>>
 }

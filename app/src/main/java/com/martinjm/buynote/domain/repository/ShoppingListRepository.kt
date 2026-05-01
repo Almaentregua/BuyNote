@@ -14,6 +14,7 @@ interface ShoppingListRepository {
     suspend fun deleteById(id: Long): Int
 
     fun getItemsByListId(listId: Long): Flow<List<ShoppingListItem>>
+    fun getItemCountsPerList(): Flow<Map<Long, Pair<Int, Int>>>
     suspend fun getItemById(id: Long): ShoppingListItem?
     suspend fun insertItem(item: ShoppingListItem): Long
     suspend fun updateItem(item: ShoppingListItem): Int
