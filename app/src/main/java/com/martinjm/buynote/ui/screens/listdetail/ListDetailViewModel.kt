@@ -34,7 +34,8 @@ data class ListDetailUiState(
     val totalItems: Int = 0,
     val checkedItems: Int = 0,
     val items: List<ShoppingListItemUiModel> = emptyList(),
-    val isLoading: Boolean = true
+    val isLoading: Boolean = true,
+    val isCompleted: Boolean = false
 )
 
 enum class SortMode { INSERTION, BY_CATEGORY }
@@ -88,7 +89,8 @@ class ListDetailViewModel @Inject constructor(
             },
             totalItems = items.size,
             checkedItems = items.count { it.isChecked },
-            isLoading = false
+            isLoading = false,
+            isCompleted = list?.status == ListStatus.COMPLETED
         )
     }.stateIn(
         scope = viewModelScope,

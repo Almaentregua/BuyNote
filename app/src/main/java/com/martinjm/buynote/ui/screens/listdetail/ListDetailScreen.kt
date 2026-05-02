@@ -148,8 +148,10 @@ fun ListDetailScreen(
                 },
                 actions = {
                     if (uiState.totalItems > 0) {
-                        TextButton(onClick = { showCompleteDialog = true }) {
-                            Text("Finalizar")
+                        if (!uiState.isCompleted) {
+                            TextButton(onClick = { showCompleteDialog = true }) {
+                                Text("Finalizar")
+                            }
                         }
                         IconButton(onClick = { viewModel.toggleSortMode() }) {
                             Icon(
@@ -168,11 +170,13 @@ fun ListDetailScreen(
             )
         },
         floatingActionButton = {
-            ExtendedFloatingActionButton(
-                onClick = { showAddSheet = true },
-                icon = { Icon(Icons.Default.Add, contentDescription = null) },
-                text = { Text("Agregar") }
-            )
+            if (!uiState.isCompleted) {
+                ExtendedFloatingActionButton(
+                    onClick = { showAddSheet = true },
+                    icon = { Icon(Icons.Default.Add, contentDescription = null) },
+                    text = { Text("Agregar") }
+                )
+            }
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
@@ -198,6 +202,7 @@ fun ListDetailScreen(
                     else -> ItemsList(
                         items = uiState.items,
                         sortMode = sortMode,
+                        isReadOnly = uiState.isCompleted,
                         onItemClick = { editingItem = it },
                         onItemToggle = { id, checked -> viewModel.toggleItem(id, checked) },
                         onItemDelete = onItemDelete,
@@ -338,6 +343,7 @@ fun ListDetailScreen(
 private fun ItemsList(
     items: List<ShoppingListItemUiModel>,
     sortMode: SortMode,
+    isReadOnly: Boolean,
     onItemClick: (ShoppingListItemUiModel) -> Unit,
     onItemToggle: (id: Long, isChecked: Boolean) -> Unit,
     onItemDelete: (ShoppingListItemUiModel) -> Unit,
@@ -364,7 +370,7 @@ private fun ItemsList(
                     )
                 }
                 items(sortedGroup, key = { it.id }) { item ->
-                    ItemRow(item, onItemClick, onItemToggle, onItemDelete)
+                    ItemRow(item, isReadOnly, onItemClick, onItemToggle, onItemDelete)
                     HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
                 }
             }
@@ -372,7 +378,7 @@ private fun ItemsList(
             val (pending, checked) = items.partition { !it.isChecked }
 
             items(pending, key = { it.id }) { item ->
-                ItemRow(item, onItemClick, onItemToggle, onItemDelete)
+                ItemRow(item, isReadOnly, onItemClick, onItemToggle, onItemDelete)
                 HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
             }
             if (pending.isNotEmpty() && checked.isNotEmpty()) {
@@ -395,7 +401,7 @@ private fun ItemsList(
                 }
             }
             items(checked, key = { it.id }) { item ->
-                ItemRow(item, onItemClick, onItemToggle, onItemDelete)
+                ItemRow(item, isReadOnly, onItemClick, onItemToggle, onItemDelete)
                 HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
             }
         }
@@ -406,48 +412,57 @@ private fun ItemsList(
 @Composable
 private fun ItemRow(
     item: ShoppingListItemUiModel,
+    isReadOnly: Boolean,
     onItemClick: (ShoppingListItemUiModel) -> Unit,
     onItemToggle: (Long, Boolean) -> Unit,
     onItemDelete: (ShoppingListItemUiModel) -> Unit
 ) {
-    val dismissState = rememberSwipeToDismissBoxState()
-    LaunchedEffect(dismissState.currentValue) {
-        if (dismissState.currentValue == SwipeToDismissBoxValue.EndToStart) {
-            onItemDelete(item)
-        }
-    }
-    SwipeToDismissBox(
-        state = dismissState,
-        enableDismissFromStartToEnd = false,
-        backgroundContent = {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.errorContainer)
-                    .padding(end = 16.dp),
-                contentAlignment = Alignment.CenterEnd
-            ) {
-                Icon(
-                    Icons.Default.Delete,
-                    contentDescription = "Eliminar",
-                    tint = MaterialTheme.colorScheme.onErrorContainer
-                )
-            }
-        }
-    ) {
+    val itemContent = @Composable {
         ListItem(
             headlineContent = { Text(item.displayName) },
             supportingContent = { Text(item.quantityDisplay) },
             leadingContent = {
                 Checkbox(
                     checked = item.isChecked,
-                    onCheckedChange = { onItemToggle(item.id, it) }
+                    onCheckedChange = if (isReadOnly) null else { checked -> onItemToggle(item.id, checked) }
                 )
             },
             modifier = Modifier
                 .alpha(if (item.isChecked) 0.5f else 1f)
-                .clickable { onItemClick(item) }
+                .then(if (!isReadOnly) Modifier.clickable { onItemClick(item) } else Modifier)
         )
+    }
+
+    if (isReadOnly) {
+        itemContent()
+    } else {
+        val dismissState = rememberSwipeToDismissBoxState()
+        LaunchedEffect(dismissState.currentValue) {
+            if (dismissState.currentValue == SwipeToDismissBoxValue.EndToStart) {
+                onItemDelete(item)
+            }
+        }
+        SwipeToDismissBox(
+            state = dismissState,
+            enableDismissFromStartToEnd = false,
+            backgroundContent = {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.errorContainer)
+                        .padding(end = 16.dp),
+                    contentAlignment = Alignment.CenterEnd
+                ) {
+                    Icon(
+                        Icons.Default.Delete,
+                        contentDescription = "Eliminar",
+                        tint = MaterialTheme.colorScheme.onErrorContainer
+                    )
+                }
+            }
+        ) {
+            itemContent()
+        }
     }
 }
 
