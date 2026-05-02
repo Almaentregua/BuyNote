@@ -142,6 +142,13 @@ class ListDetailViewModel @Inject constructor(
         }
     }
 
+    fun toggleItem(id: Long, isChecked: Boolean) {
+        viewModelScope.launch {
+            val item = repository.getItemById(id) ?: return@launch
+            repository.updateItem(item.copy(isChecked = isChecked))
+        }
+    }
+
     private var lastDeletedItem: ShoppingListItem? = null
 
     fun deleteItem(id: Long) {

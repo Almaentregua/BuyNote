@@ -161,6 +161,7 @@ fun ListDetailScreen(
                 else -> ItemsList(
                     items = uiState.items,
                     onItemClick = { editingItem = it },
+                    onItemToggle = { id, checked -> viewModel.toggleItem(id, checked) },
                     onItemDelete = onItemDelete,
                     modifier = Modifier.fillMaxSize()
                 )
@@ -281,6 +282,7 @@ fun ListDetailScreen(
 private fun ItemsList(
     items: List<ShoppingListItemUiModel>,
     onItemClick: (ShoppingListItemUiModel) -> Unit,
+    onItemToggle: (id: Long, isChecked: Boolean) -> Unit,
     onItemDelete: (ShoppingListItemUiModel) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -320,7 +322,7 @@ private fun ItemsList(
                     leadingContent = {
                         Checkbox(
                             checked = item.isChecked,
-                            onCheckedChange = { /* 3.1 */ }
+                            onCheckedChange = { onItemToggle(item.id, it) }
                         )
                     },
                     modifier = Modifier.clickable { onItemClick(item) }
