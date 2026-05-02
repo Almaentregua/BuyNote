@@ -62,7 +62,7 @@ class ListDetailViewModel @Inject constructor(
     private val categoryRepository: CategoryRepository
 ) : ViewModel() {
 
-    private val listId: Long = checkNotNull(savedStateHandle["listId"])
+    val listId: Long = checkNotNull(savedStateHandle["listId"])
 
     val uiState: StateFlow<ListDetailUiState> = combine(
         flow { emit(repository.getById(listId)) },
@@ -199,6 +199,27 @@ class ListDetailViewModel @Inject constructor(
             repository.insertItem(item.copy(id = 0L))
         }
     }
+
+    // --- Scanner ---
+
+    private val _barcodeResult = MutableSharedFlow<BarcodeResult>()
+    val barcodeResult: SharedFlow<BarcodeResult> = _barcodeResult.asSharedFlow()
+
+    fun handleScannedBarcode(barcode: String) {
+        viewModelScope.launch {
+            val product = productRepository.findByBarcode(barcode)
+            if (product != null) {
+                _barcodeResult.emit(BarcodeResult.Found(product))
+            } else {
+                _barcodeResult.emit(BarcodeResult.NotFound(barcode))
+            }
+        }
+    }
+}
+
+sealed class BarcodeResult {
+    data class Found(val product: com.martinjm.buynote.domain.model.Product) : BarcodeResult()
+    data class NotFound(val barcode: String) : BarcodeResult()
 }
 
 fun QuantityUnit.displayLabel() = when (this) {

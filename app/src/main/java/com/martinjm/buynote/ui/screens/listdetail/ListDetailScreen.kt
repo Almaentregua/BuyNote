@@ -24,6 +24,7 @@ import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.outlined.QrCodeScanner
 import androidx.compose.material.icons.outlined.Inventory2
 import androidx.compose.material.icons.outlined.ShoppingBasket
 import androidx.compose.material3.AlertDialog
@@ -98,12 +99,33 @@ fun ListDetailScreen(
 
     var showCompleteDialog by remember { mutableStateOf(false) }
 
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+
     LaunchedEffect(Unit) {
         viewModel.navigateBack.collect { navController.popBackStack() }
     }
 
-    val snackbarHostState = remember { SnackbarHostState() }
-    val scope = rememberCoroutineScope()
+    LaunchedEffect(Unit) {
+        val handle = navController.currentBackStackEntry?.savedStateHandle
+        handle?.getStateFlow<String?>("barcode", null)?.collect { barcode ->
+            if (barcode != null) {
+                handle.remove<String>("barcode")
+                viewModel.handleScannedBarcode(barcode)
+            }
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        viewModel.barcodeResult.collect { result ->
+            when (result) {
+                is BarcodeResult.Found -> pendingProduct = result.product
+                is BarcodeResult.NotFound -> scope.launch {
+                    snackbarHostState.showSnackbar("Código no encontrado en el catálogo")
+                }
+            }
+        }
+    }
 
     val onItemDelete: (ShoppingListItemUiModel) -> Unit = { item ->
         viewModel.deleteItem(item.id)
@@ -240,10 +262,21 @@ fun ListDetailScreen(
                 leadingContent = {
                     Icon(Icons.AutoMirrored.Outlined.PlaylistAdd, contentDescription = null)
                 },
+                modifier = Modifier.clickable {
+                    showAddSheet = false
+                    showAdHocSheet = true
+                }
+            )
+            ListItem(
+                headlineContent = { Text("Escanear código de barras") },
+                supportingContent = { Text("Buscá un producto escaneando su código") },
+                leadingContent = {
+                    Icon(Icons.Outlined.QrCodeScanner, contentDescription = null)
+                },
                 modifier = Modifier
                     .clickable {
                         showAddSheet = false
-                        showAdHocSheet = true
+                        navController.navigate(Routes.scanner(viewModel.listId))
                     }
                     .padding(bottom = 8.dp)
             )
@@ -298,6 +331,9 @@ fun ListDetailScreen(
             onConfirm = { quantity, unit ->
                 viewModel.addItemFromCatalog(product.id, quantity, unit)
                 pendingProduct = null
+                scope.launch {
+                    snackbarHostState.showSnackbar("\"${product.name}\" agregado a la lista")
+                }
             },
             onDismiss = { pendingProduct = null }
         )
