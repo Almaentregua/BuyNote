@@ -1,5 +1,6 @@
 package com.martinjm.buynote.ui.screens.listdetail
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -19,6 +20,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.PlaylistAdd
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.Inventory2
 import androidx.compose.material.icons.outlined.ShoppingBasket
@@ -39,15 +41,23 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -63,6 +73,7 @@ import androidx.navigation.NavHostController
 import com.martinjm.buynote.domain.model.Product
 import com.martinjm.buynote.domain.model.QuantityUnit
 import com.martinjm.buynote.ui.navigation.Routes
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -79,6 +90,23 @@ fun ListDetailScreen(
     var showAdHocSheet by remember { mutableStateOf(false) }
     var pendingProduct by remember { mutableStateOf<Product?>(null) }
     var editingItem by remember { mutableStateOf<ShoppingListItemUiModel?>(null) }
+
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+
+    val onItemDelete: (ShoppingListItemUiModel) -> Unit = { item ->
+        viewModel.deleteItem(item.id)
+        scope.launch {
+            val result = snackbarHostState.showSnackbar(
+                message = "\"${item.displayName}\" eliminado",
+                actionLabel = "Deshacer",
+                duration = SnackbarDuration.Short
+            )
+            if (result == SnackbarResult.ActionPerformed) {
+                viewModel.undoDeleteItem()
+            }
+        }
+    }
 
     val addSheetState = rememberModalBottomSheetState()
     val pickerSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -115,7 +143,8 @@ fun ListDetailScreen(
                 icon = { Icon(Icons.Default.Add, contentDescription = null) },
                 text = { Text("Agregar") }
             )
-        }
+        },
+        snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
         Box(
             modifier = Modifier
@@ -132,6 +161,7 @@ fun ListDetailScreen(
                 else -> ItemsList(
                     items = uiState.items,
                     onItemClick = { editingItem = it },
+                    onItemDelete = onItemDelete,
                     modifier = Modifier.fillMaxSize()
                 )
             }
@@ -246,10 +276,12 @@ fun ListDetailScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ItemsList(
     items: List<ShoppingListItemUiModel>,
     onItemClick: (ShoppingListItemUiModel) -> Unit,
+    onItemDelete: (ShoppingListItemUiModel) -> Unit,
     modifier: Modifier = Modifier
 ) {
     LazyColumn(
@@ -257,17 +289,43 @@ private fun ItemsList(
         contentPadding = PaddingValues(vertical = 8.dp)
     ) {
         items(items, key = { it.id }) { item ->
-            ListItem(
-                headlineContent = { Text(item.displayName) },
-                supportingContent = { Text(item.quantityDisplay) },
-                leadingContent = {
-                    Checkbox(
-                        checked = item.isChecked,
-                        onCheckedChange = { /* 3.1 */ }
-                    )
-                },
-                modifier = Modifier.clickable { onItemClick(item) }
-            )
+            val dismissState = rememberSwipeToDismissBoxState()
+            LaunchedEffect(dismissState.currentValue) {
+                if (dismissState.currentValue == SwipeToDismissBoxValue.EndToStart) {
+                    onItemDelete(item)
+                }
+            }
+            SwipeToDismissBox(
+                state = dismissState,
+                enableDismissFromStartToEnd = false,
+                backgroundContent = {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(MaterialTheme.colorScheme.errorContainer)
+                            .padding(end = 16.dp),
+                        contentAlignment = Alignment.CenterEnd
+                    ) {
+                        Icon(
+                            Icons.Default.Delete,
+                            contentDescription = "Eliminar",
+                            tint = MaterialTheme.colorScheme.onErrorContainer
+                        )
+                    }
+                }
+            ) {
+                ListItem(
+                    headlineContent = { Text(item.displayName) },
+                    supportingContent = { Text(item.quantityDisplay) },
+                    leadingContent = {
+                        Checkbox(
+                            checked = item.isChecked,
+                            onCheckedChange = { /* 3.1 */ }
+                        )
+                    },
+                    modifier = Modifier.clickable { onItemClick(item) }
+                )
+            }
             HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
         }
     }

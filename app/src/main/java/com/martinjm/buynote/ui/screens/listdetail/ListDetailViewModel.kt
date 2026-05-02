@@ -141,6 +141,24 @@ class ListDetailViewModel @Inject constructor(
             ))
         }
     }
+
+    private var lastDeletedItem: ShoppingListItem? = null
+
+    fun deleteItem(id: Long) {
+        viewModelScope.launch {
+            val item = repository.getItemById(id) ?: return@launch
+            lastDeletedItem = item
+            repository.deleteItemById(id)
+        }
+    }
+
+    fun undoDeleteItem() {
+        val item = lastDeletedItem ?: return
+        lastDeletedItem = null
+        viewModelScope.launch {
+            repository.insertItem(item.copy(id = 0L))
+        }
+    }
 }
 
 fun QuantityUnit.displayLabel() = when (this) {
