@@ -17,8 +17,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ViewList
 import androidx.compose.material.icons.automirrored.outlined.PlaylistAdd
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Search
@@ -86,6 +88,7 @@ fun ListDetailScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val pickerQuery by viewModel.pickerQuery.collectAsStateWithLifecycle()
     val pickerResults by viewModel.pickerResults.collectAsStateWithLifecycle()
+    val sortMode by viewModel.sortMode.collectAsStateWithLifecycle()
 
     var showAddSheet by remember { mutableStateOf(false) }
     var showCatalogPicker by remember { mutableStateOf(false) }
@@ -136,6 +139,22 @@ fun ListDetailScreen(
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
                     }
+                },
+                actions = {
+                    if (uiState.totalItems > 0) {
+                        IconButton(onClick = { viewModel.toggleSortMode() }) {
+                            Icon(
+                                imageVector = if (sortMode == SortMode.BY_CATEGORY)
+                                    Icons.AutoMirrored.Filled.ViewList
+                                else
+                                    Icons.Default.Category,
+                                contentDescription = if (sortMode == SortMode.BY_CATEGORY)
+                                    "Ver en orden de carga"
+                                else
+                                    "Agrupar por categoría"
+                            )
+                        }
+                    }
                 }
             )
         },
@@ -169,6 +188,7 @@ fun ListDetailScreen(
                     )
                     else -> ItemsList(
                         items = uiState.items,
+                        sortMode = sortMode,
                         onItemClick = { editingItem = it },
                         onItemToggle = { id, checked -> viewModel.toggleItem(id, checked) },
                         onItemDelete = onItemDelete,
@@ -291,43 +311,67 @@ fun ListDetailScreen(
 @Composable
 private fun ItemsList(
     items: List<ShoppingListItemUiModel>,
+    sortMode: SortMode,
     onItemClick: (ShoppingListItemUiModel) -> Unit,
     onItemToggle: (id: Long, isChecked: Boolean) -> Unit,
     onItemDelete: (ShoppingListItemUiModel) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val (pending, checked) = remember(items) { items.partition { !it.isChecked } }
-
     LazyColumn(
         modifier = modifier,
         contentPadding = PaddingValues(vertical = 8.dp)
     ) {
-        items(pending, key = { it.id }) { item ->
-            ItemRow(item, onItemClick, onItemToggle, onItemDelete)
-            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
-        }
-        if (pending.isNotEmpty() && checked.isNotEmpty()) {
-            item(key = "checked_header") {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    HorizontalDivider(modifier = Modifier.weight(1f))
+        if (sortMode == SortMode.BY_CATEGORY) {
+            val groups = items
+                .groupBy { it.categoryName }
+                .entries
+                .sortedWith(compareBy({ it.key == null }, { it.key }))
+
+            for ((categoryName, groupItems) in groups) {
+                val sortedGroup = groupItems.sortedBy { it.isChecked }
+                item(key = "cat_header_${categoryName ?: "__none__"}") {
                     Text(
-                        text = "Listos",
+                        text = categoryName ?: "Sin categoría",
                         style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                     )
-                    HorizontalDivider(modifier = Modifier.weight(1f))
+                }
+                items(sortedGroup, key = { it.id }) { item ->
+                    ItemRow(item, onItemClick, onItemToggle, onItemDelete)
+                    HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
                 }
             }
-        }
-        items(checked, key = { it.id }) { item ->
-            ItemRow(item, onItemClick, onItemToggle, onItemDelete)
-            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+        } else {
+            val (pending, checked) = items.partition { !it.isChecked }
+
+            items(pending, key = { it.id }) { item ->
+                ItemRow(item, onItemClick, onItemToggle, onItemDelete)
+                HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+            }
+            if (pending.isNotEmpty() && checked.isNotEmpty()) {
+                item(key = "checked_header") {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        HorizontalDivider(modifier = Modifier.weight(1f))
+                        Text(
+                            text = "Listos",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        HorizontalDivider(modifier = Modifier.weight(1f))
+                    }
+                }
+            }
+            items(checked, key = { it.id }) { item ->
+                ItemRow(item, onItemClick, onItemToggle, onItemDelete)
+                HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+            }
         }
     }
 }

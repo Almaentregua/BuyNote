@@ -3,10 +3,9 @@ package com.martinjm.buynote.ui.screens.listdetail
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.martinjm.buynote.domain.model.ListStatus
 import com.martinjm.buynote.domain.model.QuantityUnit
-import com.martinjm.buynote.domain.model.ShoppingList
 import com.martinjm.buynote.domain.model.ShoppingListItem
+import com.martinjm.buynote.domain.repository.CategoryRepository
 import com.martinjm.buynote.domain.repository.ProductRepository
 import com.martinjm.buynote.domain.repository.ShoppingListRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -34,6 +33,8 @@ data class ListDetailUiState(
     val isLoading: Boolean = true
 )
 
+enum class SortMode { INSERTION, BY_CATEGORY }
+
 data class ShoppingListItemUiModel(
     val id: Long,
     val displayName: String,
@@ -41,7 +42,8 @@ data class ShoppingListItemUiModel(
     val isChecked: Boolean,
     val quantity: Double,
     val unit: QuantityUnit,
-    val customName: String?
+    val customName: String?,
+    val categoryName: String?
 ) {
     val isAdHoc: Boolean get() = customName != null
 }
@@ -51,7 +53,8 @@ data class ShoppingListItemUiModel(
 class ListDetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val repository: ShoppingListRepository,
-    private val productRepository: ProductRepository
+    private val productRepository: ProductRepository,
+    private val categoryRepository: CategoryRepository
 ) : ViewModel() {
 
     private val listId: Long = checkNotNull(savedStateHandle["listId"])
@@ -59,21 +62,24 @@ class ListDetailViewModel @Inject constructor(
     val uiState: StateFlow<ListDetailUiState> = combine(
         flow { emit(repository.getById(listId)) },
         repository.getItemsByListId(listId),
-        productRepository.getAll()
-    ) { list, items, products ->
+        productRepository.getAll(),
+        categoryRepository.getAll()
+    ) { list, items, products, categories ->
         val productById = products.associateBy { it.id }
+        val categoryById = categories.associateBy { it.id }
         ListDetailUiState(
             listName = list?.name ?: "",
             items = items.map { item ->
+                val product = item.productId?.let { productById[it] }
                 ShoppingListItemUiModel(
                     id = item.id,
-                    displayName = item.productId?.let { productById[it]?.name }
-                        ?: item.customName ?: "",
+                    displayName = product?.name ?: item.customName ?: "",
                     quantityDisplay = formatQuantity(item.quantity, item.unit),
                     isChecked = item.isChecked,
                     quantity = item.quantity,
                     unit = item.unit,
-                    customName = item.customName
+                    customName = item.customName,
+                    categoryName = product?.categoryId?.let { categoryById[it]?.name }
                 )
             },
             totalItems = items.size,
@@ -85,6 +91,13 @@ class ListDetailViewModel @Inject constructor(
         started = SharingStarted.WhileSubscribed(5_000),
         initialValue = ListDetailUiState()
     )
+
+    private val _sortMode = MutableStateFlow(SortMode.INSERTION)
+    val sortMode: StateFlow<SortMode> = _sortMode.asStateFlow()
+
+    fun toggleSortMode() = _sortMode.update {
+        if (it == SortMode.INSERTION) SortMode.BY_CATEGORY else SortMode.INSERTION
+    }
 
     // --- Picker de catálogo ---
 
