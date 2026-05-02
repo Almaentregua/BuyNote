@@ -19,15 +19,16 @@ object Routes {
     const val LISTS = "lists"
     const val LIST_DETAIL = "list_detail/{listId}"
     const val CATALOG = "catalog"
-    const val PRODUCT_FORM = "product_form?productId={productId}&name={name}"
+    const val PRODUCT_FORM = "product_form?productId={productId}&name={name}&barcode={barcode}"
     const val CATEGORIES = "categories"
     const val HISTORY = "history"
     const val SCANNER = "scanner?listId={listId}"
 
     fun listDetail(listId: Long) = "list_detail/$listId"
-    fun productForm(productId: Long? = null, name: String? = null): String {
+    fun productForm(productId: Long? = null, name: String? = null, barcode: String? = null): String {
         val params = mutableListOf("productId=${productId ?: -1L}")
         if (name != null) params.add("name=${Uri.encode(name)}")
+        if (barcode != null) params.add("barcode=${Uri.encode(barcode)}")
         return "product_form?${params.joinToString("&")}"
     }
     fun scanner(listId: Long) = "scanner?listId=$listId"
@@ -56,6 +57,11 @@ fun AppNavigation(navController: NavHostController) {
                     defaultValue = -1L
                 },
                 navArgument("name") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
+                navArgument("barcode") {
                     type = NavType.StringType
                     nullable = true
                     defaultValue = null

@@ -41,13 +41,15 @@ class ProductFormViewModel @Inject constructor(
 
     private val productId: Long = savedStateHandle["productId"] ?: -1L
     private val initialName: String? = savedStateHandle["name"]
+    private val initialBarcode: String? = savedStateHandle["barcode"]
     val isEditing: Boolean = productId != -1L
+    val fromScanner: Boolean = !isEditing && initialBarcode != null
 
     private val _uiState = MutableStateFlow(ProductFormUiState())
     val uiState: StateFlow<ProductFormUiState> = _uiState.asStateFlow()
 
-    private val _navigateBack = MutableSharedFlow<Unit>()
-    val navigateBack: SharedFlow<Unit> = _navigateBack.asSharedFlow()
+    private val _navigateBack = MutableSharedFlow<Long?>()
+    val navigateBack: SharedFlow<Long?> = _navigateBack.asSharedFlow()
 
     init {
         viewModelScope.launch {
@@ -70,8 +72,9 @@ class ProductFormViewModel @Inject constructor(
                         )
                     }
                 }
-            } else if (initialName != null) {
-                _uiState.update { it.copy(name = initialName) }
+            } else {
+                if (initialName != null) _uiState.update { it.copy(name = initialName) }
+                if (initialBarcode != null) _uiState.update { it.copy(barcode = initialBarcode) }
             }
             _uiState.update { it.copy(isLoading = false) }
         }
@@ -87,7 +90,7 @@ class ProductFormViewModel @Inject constructor(
         check(isEditing)
         viewModelScope.launch {
             productRepository.deleteById(productId)
-            _navigateBack.emit(Unit)
+            _navigateBack.emit(null)
         }
     }
 
@@ -107,8 +110,13 @@ class ProductFormViewModel @Inject constructor(
                     categoryId = state.selectedCategoryId,
                     notes = state.notes.trim().ifBlank { null }
                 )
-                if (isEditing) productRepository.update(product) else productRepository.insert(product)
-                _navigateBack.emit(Unit)
+                if (isEditing) {
+                    productRepository.update(product)
+                    _navigateBack.emit(null)
+                } else {
+                    val newId = productRepository.insert(product)
+                    _navigateBack.emit(newId)
+                }
             } catch (e: SQLiteConstraintException) {
                 _uiState.update { it.copy(barcodeError = "Este código ya existe en el catálogo") }
             }

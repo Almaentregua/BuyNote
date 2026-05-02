@@ -53,7 +53,13 @@ fun ProductFormScreen(
     var showDeleteDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
-        viewModel.navigateBack.collect { navController.popBackStack() }
+        viewModel.navigateBack.collect { newProductId ->
+            if (newProductId != null && viewModel.fromScanner) {
+                navController.previousBackStackEntry?.savedStateHandle
+                    ?.set("newProductId", newProductId)
+            }
+            navController.popBackStack()
+        }
     }
 
     if (showDeleteDialog) {

@@ -120,9 +120,19 @@ fun ListDetailScreen(
         viewModel.barcodeResult.collect { result ->
             when (result) {
                 is BarcodeResult.Found -> pendingProduct = result.product
-                is BarcodeResult.NotFound -> scope.launch {
-                    snackbarHostState.showSnackbar("Código no encontrado en el catálogo")
-                }
+                is BarcodeResult.NotFound -> navController.navigate(
+                    Routes.productForm(barcode = result.barcode)
+                )
+            }
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        val handle = navController.currentBackStackEntry?.savedStateHandle
+        handle?.getStateFlow<Long?>("newProductId", null)?.collect { productId ->
+            if (productId != null) {
+                handle.remove<Long>("newProductId")
+                viewModel.addProductFromScanner(productId)
             }
         }
     }

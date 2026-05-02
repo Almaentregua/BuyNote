@@ -215,6 +215,13 @@ class ListDetailViewModel @Inject constructor(
             }
         }
     }
+
+    fun addProductFromScanner(productId: Long) {
+        viewModelScope.launch {
+            val product = productRepository.getById(productId) ?: return@launch
+            _barcodeResult.emit(BarcodeResult.Found(product))
+        }
+    }
 }
 
 sealed class BarcodeResult {
