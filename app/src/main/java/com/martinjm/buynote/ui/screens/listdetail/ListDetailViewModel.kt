@@ -3,6 +3,7 @@ package com.martinjm.buynote.ui.screens.listdetail
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.martinjm.buynote.domain.model.ListStatus
 import com.martinjm.buynote.domain.model.QuantityUnit
 import com.martinjm.buynote.domain.model.ShoppingListItem
 import com.martinjm.buynote.domain.repository.CategoryRepository
@@ -11,9 +12,12 @@ import com.martinjm.buynote.domain.repository.ShoppingListRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
@@ -97,6 +101,20 @@ class ListDetailViewModel @Inject constructor(
 
     fun toggleSortMode() = _sortMode.update {
         if (it == SortMode.INSERTION) SortMode.BY_CATEGORY else SortMode.INSERTION
+    }
+
+    private val _navigateBack = MutableSharedFlow<Unit>()
+    val navigateBack: SharedFlow<Unit> = _navigateBack.asSharedFlow()
+
+    fun completeList() {
+        viewModelScope.launch {
+            val list = repository.getById(listId) ?: return@launch
+            repository.update(list.copy(
+                status = ListStatus.COMPLETED,
+                completedAt = System.currentTimeMillis()
+            ))
+            _navigateBack.emit(Unit)
+        }
     }
 
     // --- Picker de catálogo ---

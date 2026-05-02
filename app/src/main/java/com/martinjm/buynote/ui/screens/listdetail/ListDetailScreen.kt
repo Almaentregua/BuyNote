@@ -96,6 +96,12 @@ fun ListDetailScreen(
     var pendingProduct by remember { mutableStateOf<Product?>(null) }
     var editingItem by remember { mutableStateOf<ShoppingListItemUiModel?>(null) }
 
+    var showCompleteDialog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        viewModel.navigateBack.collect { navController.popBackStack() }
+    }
+
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
@@ -142,6 +148,9 @@ fun ListDetailScreen(
                 },
                 actions = {
                     if (uiState.totalItems > 0) {
+                        TextButton(onClick = { showCompleteDialog = true }) {
+                            Text("Finalizar")
+                        }
                         IconButton(onClick = { viewModel.toggleSortMode() }) {
                             Icon(
                                 imageVector = if (sortMode == SortMode.BY_CATEGORY)
@@ -304,6 +313,23 @@ fun ListDetailScreen(
                 onDismiss = { editingItem = null }
             )
         }
+    }
+
+    // --- Diálogo: finalizar compra ---
+    if (showCompleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showCompleteDialog = false },
+            title = { Text("¿Finalizar compra?") },
+            text = { Text("La lista pasará al historial y no podrás seguir editándola.") },
+            confirmButton = {
+                TextButton(onClick = { viewModel.completeList(); showCompleteDialog = false }) {
+                    Text("Finalizar")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showCompleteDialog = false }) { Text("Cancelar") }
+            }
+        )
     }
 }
 
