@@ -41,6 +41,7 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -61,6 +62,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.text.input.KeyboardType
@@ -146,25 +148,33 @@ fun ListDetailScreen(
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            when {
-                uiState.isLoading -> Unit
-                uiState.items.isEmpty() -> EmptyList(
-                    onAddFromCatalog = { showCatalogPicker = true },
-                    onAddAdHoc = { showAdHocSheet = true },
-                    modifier = Modifier.align(Alignment.Center)
+            if (uiState.totalItems > 0) {
+                LinearProgressIndicator(
+                    progress = { uiState.checkedItems.toFloat() / uiState.totalItems },
+                    modifier = Modifier.fillMaxWidth()
                 )
-                else -> ItemsList(
-                    items = uiState.items,
-                    onItemClick = { editingItem = it },
-                    onItemToggle = { id, checked -> viewModel.toggleItem(id, checked) },
-                    onItemDelete = onItemDelete,
-                    modifier = Modifier.fillMaxSize()
-                )
+            }
+            Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+                when {
+                    uiState.isLoading -> Unit
+                    uiState.items.isEmpty() -> EmptyList(
+                        onAddFromCatalog = { showCatalogPicker = true },
+                        onAddAdHoc = { showAdHocSheet = true },
+                        modifier = Modifier.align(Alignment.Center)
+                    )
+                    else -> ItemsList(
+                        items = uiState.items,
+                        onItemClick = { editingItem = it },
+                        onItemToggle = { id, checked -> viewModel.toggleItem(id, checked) },
+                        onItemDelete = onItemDelete,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
             }
         }
     }
@@ -286,50 +296,88 @@ private fun ItemsList(
     onItemDelete: (ShoppingListItemUiModel) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val (pending, checked) = remember(items) { items.partition { !it.isChecked } }
+
     LazyColumn(
         modifier = modifier,
         contentPadding = PaddingValues(vertical = 8.dp)
     ) {
-        items(items, key = { it.id }) { item ->
-            val dismissState = rememberSwipeToDismissBoxState()
-            LaunchedEffect(dismissState.currentValue) {
-                if (dismissState.currentValue == SwipeToDismissBoxValue.EndToStart) {
-                    onItemDelete(item)
-                }
-            }
-            SwipeToDismissBox(
-                state = dismissState,
-                enableDismissFromStartToEnd = false,
-                backgroundContent = {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(MaterialTheme.colorScheme.errorContainer)
-                            .padding(end = 16.dp),
-                        contentAlignment = Alignment.CenterEnd
-                    ) {
-                        Icon(
-                            Icons.Default.Delete,
-                            contentDescription = "Eliminar",
-                            tint = MaterialTheme.colorScheme.onErrorContainer
-                        )
-                    }
-                }
-            ) {
-                ListItem(
-                    headlineContent = { Text(item.displayName) },
-                    supportingContent = { Text(item.quantityDisplay) },
-                    leadingContent = {
-                        Checkbox(
-                            checked = item.isChecked,
-                            onCheckedChange = { onItemToggle(item.id, it) }
-                        )
-                    },
-                    modifier = Modifier.clickable { onItemClick(item) }
-                )
-            }
+        items(pending, key = { it.id }) { item ->
+            ItemRow(item, onItemClick, onItemToggle, onItemDelete)
             HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
         }
+        if (pending.isNotEmpty() && checked.isNotEmpty()) {
+            item(key = "checked_header") {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    HorizontalDivider(modifier = Modifier.weight(1f))
+                    Text(
+                        text = "Listos",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    HorizontalDivider(modifier = Modifier.weight(1f))
+                }
+            }
+        }
+        items(checked, key = { it.id }) { item ->
+            ItemRow(item, onItemClick, onItemToggle, onItemDelete)
+            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ItemRow(
+    item: ShoppingListItemUiModel,
+    onItemClick: (ShoppingListItemUiModel) -> Unit,
+    onItemToggle: (Long, Boolean) -> Unit,
+    onItemDelete: (ShoppingListItemUiModel) -> Unit
+) {
+    val dismissState = rememberSwipeToDismissBoxState()
+    LaunchedEffect(dismissState.currentValue) {
+        if (dismissState.currentValue == SwipeToDismissBoxValue.EndToStart) {
+            onItemDelete(item)
+        }
+    }
+    SwipeToDismissBox(
+        state = dismissState,
+        enableDismissFromStartToEnd = false,
+        backgroundContent = {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.errorContainer)
+                    .padding(end = 16.dp),
+                contentAlignment = Alignment.CenterEnd
+            ) {
+                Icon(
+                    Icons.Default.Delete,
+                    contentDescription = "Eliminar",
+                    tint = MaterialTheme.colorScheme.onErrorContainer
+                )
+            }
+        }
+    ) {
+        ListItem(
+            headlineContent = { Text(item.displayName) },
+            supportingContent = { Text(item.quantityDisplay) },
+            leadingContent = {
+                Checkbox(
+                    checked = item.isChecked,
+                    onCheckedChange = { onItemToggle(item.id, it) }
+                )
+            },
+            modifier = Modifier
+                .alpha(if (item.isChecked) 0.5f else 1f)
+                .clickable { onItemClick(item) }
+        )
     }
 }
 
