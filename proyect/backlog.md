@@ -4,7 +4,20 @@ Cada historia es una unidad de trabajo independiente, pequeña y verificable, co
 
 ---
 
-## Fase 0 — Setup del proyecto
+## Estado general
+
+| Fase | Nombre | Estado |
+|------|--------|--------|
+| 0 | Setup del proyecto | ✓ Completa |
+| 1 | Catálogo de productos | ✓ Completa |
+| 2 | Listas de compras | ✓ Completa |
+| 3 | Modo compras | ✓ Completa |
+| 4 | Lector de código de barras | ✓ Completa |
+| 5 | Gestión avanzada | Pendiente |
+
+---
+
+## Fase 0 — Setup del proyecto ✓
 
 ### 0.1 Configuración base de Gradle y dependencias
 **Objetivo**: dejar el proyecto compilando con todas las dependencias necesarias.
@@ -41,7 +54,7 @@ Cada historia es una unidad de trabajo independiente, pequeña y verificable, co
 
 ---
 
-## Fase 1 — Catálogo de productos
+## Fase 1 — Catálogo de productos ✓
 
 ### 1.1 Entidades Product y Category + DAO + Repository
 **Objetivo**: capa de datos del catálogo lista para usar.
@@ -89,7 +102,7 @@ Cada historia es una unidad de trabajo independiente, pequeña y verificable, co
 
 ---
 
-## Fase 2 — Listas de compras
+## Fase 2 — Listas de compras ✓
 
 ### 2.1 Entidades ShoppingList y ShoppingListItem + DAO + Repository
 **Objetivo**: capa de datos de las listas lista.
@@ -147,7 +160,7 @@ Cada historia es una unidad de trabajo independiente, pequeña y verificable, co
 
 ---
 
-## Fase 3 — Modo compras
+## Fase 3 — Modo compras ✓
 
 ### 3.1 Tildar / destildar items
 **Objetivo**: marcar items como agarrados en el local.
@@ -184,7 +197,7 @@ Cada historia es una unidad de trabajo independiente, pequeña y verificable, co
 
 ---
 
-## Fase 4 — Lector de código de barras
+## Fase 4 — Lector de código de barras ✓
 
 ### 4.1 Permisos de cámara
 **Objetivo**: solicitar permiso al usuario.
@@ -214,14 +227,66 @@ Cada historia es una unidad de trabajo independiente, pequeña y verificable, co
 
 ---
 
+## Fase 5 — Gestión avanzada
+
+### 5.1 Eliminar lista activa
+**Objetivo**: poder borrar una lista que todavía no fue completada.
+**Criterios de aceptación**:
+- Swipe-to-delete en el home de listas activas con diálogo de confirmación.
+- Botón "Eliminar lista" en el detalle de la lista con diálogo de confirmación.
+- Al confirmar, elimina la lista y todos sus items en cascada.
+- Si se elimina desde el detalle, navega al home.
+
+### 5.2 Eliminar listas del historial
+**Objetivo**: poder limpiar listas completadas que ya no son necesarias.
+**Criterios de aceptación**:
+- Swipe-to-delete sobre una lista en el historial con diálogo de confirmación.
+- Botón "Limpiar historial" en la top bar del historial con diálogo de confirmación ("Esta acción no se puede deshacer").
+- Ambas acciones eliminan la lista y todos sus items en cascada.
+
+### 5.3 Escanear código desde el formulario de producto
+**Objetivo**: rellenar el campo de código de barras escaneando, sin tener que tipear.
+**Criterios de aceptación**:
+- Ícono de scanner al lado del campo "Código de barras" en el formulario de producto.
+- Al tocar, abre el scanner (sin listId).
+- Al detectar un código, cierra el scanner y llena el campo automáticamente.
+- Si el código ya existe en otro producto, el error de constraint se muestra al intentar guardar (comportamiento ya existente).
+
+---
+
+## Bugs conocidos
+
+### BUG-01 — Ítem de lista pierde el nombre al eliminar el producto del catálogo
+
+**Síntoma**: al eliminar un producto del catálogo, los ítems de listas que lo referenciaban aparecen como un checkbox vacío sin texto (ni en listas activas ni en el historial).
+
+**Causa**: `ProductFormViewModel.delete()` llama a `productRepository.deleteById(productId)` sin antes copiar `product.name` a `customName` de los ítems vinculados. Room aplica `ON DELETE SET NULL` sobre `productId` automáticamente, pero `customName` también queda `null`. El display name resuelve `product?.name ?: item.customName ?: ""` y termina en cadena vacía.
+
+**Comportamiento esperado** (definido en historia 1.4): al eliminar un producto, los ítems vinculados deben quedar con `productId = null` y `customName = product.name`, conservando el nombre como texto libre.
+
+**Fix propuesto**: antes de ejecutar el delete, obtener todos los `ShoppingListItem` que referencian ese `productId` y setear `customName = product.name` en los que tengan `customName = null`. Requiere inyectar `ShoppingListRepository` en `ProductFormViewModel` o encapsular la lógica en `ProductRepositoryImpl`.
+
+---
+
+## Ideas / Backlog futuro
+
+Ideas que no están listas para convertirse en historias todavía. Se priorizan y detallan antes de arrancar.
+
+- **Scanner desde el catálogo**: botón en la pantalla de catálogo que escanea un código y abre el producto si ya existe, o el form de alta si no. Similar al flujo de listas pero sin el contexto de una lista activa.
+
+---
+
 ## Roadmap de iteraciones sugerido
 
-1. **Iteración 1** — Fase 0 completa.
-2. **Iteración 2** — 1.1 → 1.4 (catálogo CRUD básico, sin búsqueda ni categorías).
-3. **Iteración 3** — 1.5 + 1.6 (búsqueda y categorías).
-4. **Iteración 4** — 2.1 → 2.4 (modelos de lista + home + crear lista + detalle vacío).
-5. **Iteración 5** — 2.5 → 2.8 (agregar/editar/eliminar items).
-6. **Iteración 6** — Fase 3 completa (modo compras + historial).
-7. **Iteración 7** — Fase 4 completa (barcode scanner).
+| Iteración | Contenido |
+|-----------|-----------|
+| 1 | Fase 0 completa |
+| 2 | 1.1 → 1.4 (catálogo CRUD básico) |
+| 3 | 1.5 + 1.6 (búsqueda y categorías) |
+| 4 | 2.1 → 2.4 (modelos de lista + home + crear + detalle vacío) |
+| 5 | 2.5 → 2.8 (agregar / editar / eliminar items) |
+| 6 | Fase 3 completa (modo compras + historial) |
+| 7 | Fase 4 completa (barcode scanner) |
+| 8 | Fase 5 completa (gestión avanzada) |
 
 Al final de cada iteración la app debería compilar, correr y ofrecer valor incremental que se pueda probar.
