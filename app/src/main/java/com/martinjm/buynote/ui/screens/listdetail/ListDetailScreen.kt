@@ -98,6 +98,7 @@ fun ListDetailScreen(
     var editingItem by remember { mutableStateOf<ShoppingListItemUiModel?>(null) }
 
     var showCompleteDialog by remember { mutableStateOf(false) }
+    var showDeleteListDialog by remember { mutableStateOf(false) }
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -179,6 +180,11 @@ fun ListDetailScreen(
                     }
                 },
                 actions = {
+                    if (!uiState.isCompleted) {
+                        IconButton(onClick = { showDeleteListDialog = true }) {
+                            Icon(Icons.Default.Delete, contentDescription = "Eliminar lista")
+                        }
+                    }
                     if (uiState.totalItems > 0) {
                         if (!uiState.isCompleted) {
                             TextButton(onClick = { showCompleteDialog = true }) {
@@ -364,6 +370,23 @@ fun ListDetailScreen(
                 onDismiss = { editingItem = null }
             )
         }
+    }
+
+    // --- Diálogo: eliminar lista ---
+    if (showDeleteListDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteListDialog = false },
+            title = { Text("¿Eliminar lista?") },
+            text = { Text("Se eliminará \"${uiState.listName}\" y todos sus items. Esta acción no se puede deshacer.") },
+            confirmButton = {
+                TextButton(onClick = { viewModel.deleteList(); showDeleteListDialog = false }) {
+                    Text("Eliminar")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteListDialog = false }) { Text("Cancelar") }
+            }
+        )
     }
 
     // --- Diálogo: finalizar compra ---

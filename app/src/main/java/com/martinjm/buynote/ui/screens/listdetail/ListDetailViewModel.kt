@@ -119,6 +119,13 @@ class ListDetailViewModel @Inject constructor(
         }
     }
 
+    fun deleteList() {
+        viewModelScope.launch {
+            repository.deleteById(listId)
+            _navigateBack.emit(Unit)
+        }
+    }
+
     // --- Picker de catálogo ---
 
     private val _pickerQuery = MutableStateFlow("")

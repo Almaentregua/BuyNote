@@ -1,5 +1,6 @@
 package com.martinjm.buynote.ui.screens.lists
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -15,6 +16,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Label
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Inventory2
@@ -34,14 +36,18 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -53,6 +59,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import com.martinjm.buynote.ui.navigation.Routes
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -134,7 +141,8 @@ fun ActiveListsScreen(
                 else -> {
                     ShoppingListColumn(
                         lists = uiState.lists,
-                        onListClick = { id -> navController.navigate(Routes.listDetail(id)) }
+                        onListClick = { id -> navController.navigate(Routes.listDetail(id)) },
+                        onListDelete = { id -> viewModel.deleteList(id) }
                     )
                 }
             }
@@ -223,16 +231,83 @@ private fun EmptyLists(modifier: Modifier = Modifier) {
 @Composable
 private fun ShoppingListColumn(
     lists: List<ShoppingListUiModel>,
-    onListClick: (Long) -> Unit
+    onListClick: (Long) -> Unit,
+    onListDelete: (Long) -> Unit
 ) {
     LazyColumn(contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp)) {
         items(lists, key = { it.id }) { list ->
-            ShoppingListCard(
+            SwipeableShoppingListCard(
                 list = list,
                 onClick = { onListClick(list.id) },
+                onConfirmDelete = { onListDelete(list.id) },
                 modifier = Modifier.padding(bottom = 12.dp)
             )
         }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SwipeableShoppingListCard(
+    list: ShoppingListUiModel,
+    onClick: () -> Unit,
+    onConfirmDelete: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val scope = rememberCoroutineScope()
+    val dismissState = rememberSwipeToDismissBoxState()
+    var showDeleteDialog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(dismissState.currentValue) {
+        if (dismissState.currentValue == SwipeToDismissBoxValue.EndToStart) {
+            showDeleteDialog = true
+        }
+    }
+
+    SwipeToDismissBox(
+        state = dismissState,
+        enableDismissFromStartToEnd = false,
+        backgroundContent = {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.errorContainer)
+                    .padding(end = 16.dp),
+                contentAlignment = Alignment.CenterEnd
+            ) {
+                Icon(
+                    Icons.Default.Delete,
+                    contentDescription = "Eliminar",
+                    tint = MaterialTheme.colorScheme.onErrorContainer
+                )
+            }
+        },
+        modifier = modifier
+    ) {
+        ShoppingListCard(list = list, onClick = onClick)
+    }
+
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                showDeleteDialog = false
+                scope.launch { dismissState.reset() }
+            },
+            title = { Text("¿Eliminar lista?") },
+            text = { Text("Se eliminará \"${list.name}\" y todos sus items. Esta acción no se puede deshacer.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showDeleteDialog = false
+                    onConfirmDelete()
+                }) { Text("Eliminar") }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showDeleteDialog = false
+                    scope.launch { dismissState.reset() }
+                }) { Text("Cancelar") }
+            }
+        )
     }
 }
 

@@ -76,6 +76,12 @@ class ActiveListsViewModel @Inject constructor(
         }
     }
 
+    fun deleteList(id: Long) {
+        viewModelScope.launch {
+            repository.deleteById(id)
+        }
+    }
+
     private fun formatDate(epochMillis: Long): String {
         val sdf = SimpleDateFormat("d 'de' MMM", Locale.forLanguageTag("es"))
         return sdf.format(Date(epochMillis))

@@ -13,7 +13,7 @@ Cada historia es una unidad de trabajo independiente, pequeña y verificable, co
 | 2 | Listas de compras | ✓ Completa |
 | 3 | Modo compras | ✓ Completa |
 | 4 | Lector de código de barras | ✓ Completa |
-| 5 | Gestión avanzada | Pendiente |
+| 5 | Gestión avanzada | En progreso |
 
 ---
 
@@ -229,7 +229,7 @@ Cada historia es una unidad de trabajo independiente, pequeña y verificable, co
 
 ## Fase 5 — Gestión avanzada
 
-### 5.1 Eliminar lista activa
+### 5.1 Eliminar lista activa ✓
 **Objetivo**: poder borrar una lista que todavía no fue completada.
 **Criterios de aceptación**:
 - Swipe-to-delete en el home de listas activas con diálogo de confirmación.
