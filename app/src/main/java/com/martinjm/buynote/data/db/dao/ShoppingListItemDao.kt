@@ -31,6 +31,9 @@ interface ShoppingListItemDao {
     @Query("DELETE FROM shopping_list_items WHERE id = :id")
     suspend fun deleteById(id: Long): Int
 
+    @Query("UPDATE shopping_list_items SET customName = :name WHERE productId = :productId AND customName IS NULL")
+    suspend fun inheritProductName(productId: Long, name: String)
+
     @Query("SELECT listId, COUNT(*) as total, SUM(isChecked) as checked FROM shopping_list_items GROUP BY listId")
     fun getCountsPerList(): Flow<List<ListItemCounts>>
 }

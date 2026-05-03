@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.martinjm.buynote.domain.model.Product
 import com.martinjm.buynote.domain.repository.CategoryRepository
 import com.martinjm.buynote.domain.repository.ProductRepository
+import com.martinjm.buynote.domain.repository.ShoppingListRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -36,6 +37,7 @@ data class CategoryOption(val id: Long, val name: String)
 class ProductFormViewModel @Inject constructor(
     private val productRepository: ProductRepository,
     private val categoryRepository: CategoryRepository,
+    private val shoppingListRepository: ShoppingListRepository,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -89,6 +91,8 @@ class ProductFormViewModel @Inject constructor(
     fun delete() {
         check(isEditing)
         viewModelScope.launch {
+            val product = productRepository.getById(productId) ?: return@launch
+            shoppingListRepository.detachProduct(productId, product.name)
             productRepository.deleteById(productId)
             _navigateBack.emit(null)
         }

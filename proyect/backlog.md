@@ -256,7 +256,7 @@ Cada historia es una unidad de trabajo independiente, pequeña y verificable, co
 
 ## Bugs conocidos
 
-### BUG-01 — Ítem de lista pierde el nombre al eliminar el producto del catálogo
+### ~~BUG-01~~ — Ítem de lista pierde el nombre al eliminar el producto del catálogo ✓ Resuelto
 
 **Síntoma**: al eliminar un producto del catálogo, los ítems de listas que lo referenciaban aparecen como un checkbox vacío sin texto (ni en listas activas ni en el historial).
 

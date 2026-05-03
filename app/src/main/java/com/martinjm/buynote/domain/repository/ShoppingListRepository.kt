@@ -20,4 +20,5 @@ interface ShoppingListRepository {
     suspend fun updateItem(item: ShoppingListItem): Int
     suspend fun deleteItem(item: ShoppingListItem): Int
     suspend fun deleteItemById(id: Long): Int
+    suspend fun detachProduct(productId: Long, productName: String)
 }

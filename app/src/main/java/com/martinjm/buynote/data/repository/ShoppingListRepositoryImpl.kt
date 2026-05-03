@@ -61,6 +61,9 @@ class ShoppingListRepositoryImpl @Inject constructor(
 
     override suspend fun deleteItemById(id: Long): Int =
         itemDao.deleteById(id)
+
+    override suspend fun detachProduct(productId: Long, productName: String) =
+        itemDao.inheritProductName(productId, productName)
 }
 
 private fun ShoppingListEntity.toDomain() = ShoppingList(
