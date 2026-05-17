@@ -237,7 +237,7 @@ Cada historia es una unidad de trabajo independiente, pequeña y verificable, co
 - Al confirmar, elimina la lista y todos sus items en cascada.
 - Si se elimina desde el detalle, navega al home.
 
-### 5.2 Eliminar listas del historial
+### 5.2 Eliminar listas del historial ✓
 **Objetivo**: poder limpiar listas completadas que ya no son necesarias.
 **Criterios de aceptación**:
 - Swipe-to-delete sobre una lista en el historial con diálogo de confirmación.

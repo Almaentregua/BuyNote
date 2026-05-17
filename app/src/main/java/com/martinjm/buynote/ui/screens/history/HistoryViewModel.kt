@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -33,6 +34,14 @@ class HistoryViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val dateFormat = SimpleDateFormat("d 'de' MMM yyyy", Locale.forLanguageTag("es"))
+
+    fun deleteList(id: Long) {
+        viewModelScope.launch { repository.deleteById(id) }
+    }
+
+    fun deleteAll() {
+        viewModelScope.launch { repository.deleteAllCompleted() }
+    }
 
     val uiState: StateFlow<HistoryUiState> = combine(
         repository.getCompleted(),

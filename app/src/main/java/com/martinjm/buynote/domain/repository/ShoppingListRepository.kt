@@ -12,6 +12,7 @@ interface ShoppingListRepository {
     suspend fun update(list: ShoppingList): Int
     suspend fun delete(list: ShoppingList): Int
     suspend fun deleteById(id: Long): Int
+    suspend fun deleteAllCompleted()
 
     fun getItemsByListId(listId: Long): Flow<List<ShoppingListItem>>
     fun getItemCountsPerList(): Flow<Map<Long, Pair<Int, Int>>>

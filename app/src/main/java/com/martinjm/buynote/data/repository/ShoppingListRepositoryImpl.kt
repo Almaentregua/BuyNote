@@ -39,6 +39,9 @@ class ShoppingListRepositoryImpl @Inject constructor(
     override suspend fun deleteById(id: Long): Int =
         listDao.deleteById(id)
 
+    override suspend fun deleteAllCompleted() =
+        listDao.deleteAllCompleted()
+
     override fun getItemsByListId(listId: Long): Flow<List<ShoppingListItem>> =
         itemDao.getByListId(listId).map { it.map { e -> e.toDomain() } }
 
