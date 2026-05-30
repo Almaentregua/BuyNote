@@ -12,6 +12,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.outlined.QrCodeScanner
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
@@ -42,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
+import com.martinjm.buynote.ui.navigation.Routes
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -59,6 +61,16 @@ fun ProductFormScreen(
                     ?.set("newProductId", newProductId)
             }
             navController.popBackStack()
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        val handle = navController.currentBackStackEntry?.savedStateHandle
+        handle?.getStateFlow<String?>("barcode", null)?.collect { barcode ->
+            if (barcode != null) {
+                handle.remove<String>("barcode")
+                viewModel.onBarcodeChange(barcode)
+            }
         }
     }
 
@@ -110,6 +122,7 @@ fun ProductFormScreen(
                 onBarcodeChange = viewModel::onBarcodeChange,
                 onNotesChange = viewModel::onNotesChange,
                 onCategorySelected = viewModel::onCategorySelected,
+                onScanClick = { navController.navigate(Routes.scanner()) },
                 modifier = Modifier.padding(padding)
             )
         }
@@ -125,6 +138,7 @@ private fun ProductForm(
     onBarcodeChange: (String) -> Unit,
     onNotesChange: (String) -> Unit,
     onCategorySelected: (Long?) -> Unit,
+    onScanClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -166,6 +180,11 @@ private fun ProductForm(
             label = { Text("Código de barras") },
             isError = uiState.barcodeError != null,
             supportingText = uiState.barcodeError?.let { { Text(it) } },
+            trailingIcon = {
+                IconButton(onClick = onScanClick) {
+                    Icon(Icons.Outlined.QrCodeScanner, contentDescription = "Escanear código")
+                }
+            },
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Number,
                 imeAction = ImeAction.Next

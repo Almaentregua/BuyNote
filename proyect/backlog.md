@@ -13,7 +13,7 @@ Cada historia es una unidad de trabajo independiente, pequeña y verificable, co
 | 2 | Listas de compras | ✓ Completa |
 | 3 | Modo compras | ✓ Completa |
 | 4 | Lector de código de barras | ✓ Completa |
-| 5 | Gestión avanzada | En progreso |
+| 5 | Gestión avanzada | ✓ Completa |
 
 ---
 
@@ -244,7 +244,7 @@ Cada historia es una unidad de trabajo independiente, pequeña y verificable, co
 - Botón "Limpiar historial" en la top bar del historial con diálogo de confirmación ("Esta acción no se puede deshacer").
 - Ambas acciones eliminan la lista y todos sus items en cascada.
 
-### 5.3 Escanear código desde el formulario de producto
+### 5.3 Escanear código desde el formulario de producto ✓
 **Objetivo**: rellenar el campo de código de barras escaneando, sin tener que tipear.
 **Criterios de aceptación**:
 - Ícono de scanner al lado del campo "Código de barras" en el formulario de producto.

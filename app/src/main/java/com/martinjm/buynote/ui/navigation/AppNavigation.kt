@@ -32,6 +32,7 @@ object Routes {
         return "product_form?${params.joinToString("&")}"
     }
     fun scanner(listId: Long) = "scanner?listId=$listId"
+    fun scanner() = "scanner"
 }
 
 @Composable
