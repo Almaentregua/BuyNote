@@ -254,6 +254,27 @@ Cada historia es una unidad de trabajo independiente, pequeña y verificable, co
 
 ---
 
+## Fase 6 — Mejoras de UX
+
+### 6.1 Mostrar marca del producto en los items de la lista
+**Objetivo**: que al ver una lista de compras, cada item muestre nombre y marca (si tiene), no solo el nombre.
+**Criterios de aceptación**:
+- En `ShoppingListItemUiModel` se agrega `brandName: String?`, populado desde `product?.brand`.
+- En `ItemRow`, el `supportingContent` muestra marca + cantidad cuando la marca existe (ej: "Arcor · 2 unidades"), o solo cantidad cuando no hay marca.
+- Items ad-hoc (sin producto asociado) no se ven afectados: solo muestran cantidad.
+- El cambio aplica tanto a listas activas como al historial (read-only).
+
+### 6.2 Ícono personalizado de la aplicación ✓
+**Objetivo**: reemplazar el ícono genérico de Android Studio por una imagen representativa de BuyNote.
+**Criterios de aceptación**:
+- El usuario provee una imagen fuente `proyect/assets/icon_source.png` (1024 × 1024 px, fondo transparente).
+- Se generan las capas del adaptive icon: `drawable/ic_launcher_foreground` (foreground) y `drawable/ic_launcher_background` (color de fondo acordado).
+- Se reemplazan los WebP en todos los mipmap-* (mdpi/hdpi/xhdpi/xxhdpi/xxxhdpi) para `ic_launcher` e `ic_launcher_round` con los tamaños correspondientes (48/72/96/144/192 px).
+- El ícono se ve correctamente en el launcher (cuadrado, circular y squircle según el launcher del dispositivo).
+- La app compila y corre sin errores de recursos.
+
+---
+
 ## Bugs conocidos
 
 ### ~~BUG-01~~ — Ítem de lista pierde el nombre al eliminar el producto del catálogo ✓ Resuelto

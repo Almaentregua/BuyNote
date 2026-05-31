@@ -43,6 +43,7 @@ enum class SortMode { INSERTION, BY_CATEGORY }
 data class ShoppingListItemUiModel(
     val id: Long,
     val displayName: String,
+    val brandName: String?,
     val quantityDisplay: String,
     val isChecked: Boolean,
     val quantity: Double,
@@ -79,6 +80,7 @@ class ListDetailViewModel @Inject constructor(
                 ShoppingListItemUiModel(
                     id = item.id,
                     displayName = product?.name ?: item.customName ?: "",
+                    brandName = product?.brand,
                     quantityDisplay = formatQuantity(item.quantity, item.unit),
                     isChecked = item.isChecked,
                     quantity = item.quantity,

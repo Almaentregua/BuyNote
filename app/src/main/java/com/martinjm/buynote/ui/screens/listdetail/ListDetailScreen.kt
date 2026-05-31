@@ -489,7 +489,12 @@ private fun ItemRow(
     val itemContent = @Composable {
         ListItem(
             headlineContent = { Text(item.displayName) },
-            supportingContent = { Text(item.quantityDisplay) },
+            supportingContent = {
+                Text(
+                    if (item.brandName != null) "${item.brandName} · ${item.quantityDisplay}"
+                    else item.quantityDisplay
+                )
+            },
             leadingContent = {
                 Checkbox(
                     checked = item.isChecked,
